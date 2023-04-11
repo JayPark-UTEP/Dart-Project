@@ -21,10 +21,44 @@ class Controller {
     //get the game information form the server
     //return Info object(size,strategies)
     var info = await wb.getInfo(url);
-    print(info);
-    ui.askStrategy();
-
+    var pid = await ui.askStrategy();
     ui.showBoard();
+    makeMove(pid);
+  }
+
+  void makeMove(pid) async {
+    //The exclamation mark makes sure the input isnt null
+    var ui = consoleUI();
+    ui.printMoveDirections();
+    var xandy = stdin.readLineSync()!.split(" ");
+    try {
+      if (xandy.length != 2) {
+        throw FormatException();
+      }
+      if (int.parse(xandy[0]) > 15 ||
+          int.parse(xandy[0]) < 1 ||
+          int.parse(xandy[1]) > 15 ||
+          int.parse(xandy[1]) < 1) {
+        throw FormatException();
+      } else {
+        var x = int.parse(xandy[0]);
+        var y = int.parse(xandy[1]);
+        var uri = Uri.parse(
+            "https://www.cs.utep.edu/cheon/cs3360/project/omok/play/?pid=$pid&x=$x&y=$y");
+        var response = await http.get(uri);
+        var statusCode = response.statusCode;
+        if (statusCode < 200 || statusCode > 400) {
+          print('Server connection failed ($statusCode).');
+        } else {
+          print(response.body);
+        }
+      }
+    } on FormatException {
+      print("Invalid format, please follow the example given");
+      print("");
+      ui.showBoard;
+      makeMove(pid);
+    }
   }
 }
 
@@ -40,26 +74,11 @@ class consoleUI {
     return url;
   }
 
-  askStrategy() {
+  askStrategy() async {
+    var web = WebClient();
     print('select the server strategy: 1. smart 2. random [default: 1]');
     var userStrategy = stdin.readLineSync()!;
-    checkSelection(userStrategy);
-  }
-
-  checkSelection(userStrategy) {
-    try {
-      var selection = int.parse(userStrategy);
-
-      if (selection == 1 || selection == 2) {
-        print('creating a new game...');
-      } else {
-        print('Invalid selection: $selection');
-        askStrategy();
-      }
-    } on FormatException {
-      print('Format error $userStrategy');
-      askStrategy();
-    }
+    return await web.createGame(userStrategy);
   }
 
   void showBoard() {
@@ -74,11 +93,16 @@ class consoleUI {
     //   stdout.writeln('${y % 10}| $line');
     // }
   }
+
+  void printMoveDirections() {
+    print("Player: O, Server: X (and *)");
+    print("Enter x and y for your move (1-15, e.g., 8 10): ");
+  }
 }
 
 class Board {
   var _size;
-  // var _rows;
+  var _rows;
   Board(this._size);
 }
 
@@ -93,6 +117,43 @@ class WebClient {
       // print('Response body: ${response.body}');
       var info = json.decode(response.body);
       return Info(info['size'], info['strategies']);
+    }
+  }
+
+  createGame(userStrategy) async {
+    var ui = consoleUI();
+    try {
+      var selection = int.parse(userStrategy);
+
+      if (selection == 1 || selection == 2) {
+        print('creating a new game...');
+        var strategy = '';
+        if (selection == 1) {
+          strategy = 'Smart';
+        }
+        if (selection == 2) {
+          strategy = 'Random';
+        }
+        var uri = Uri.parse(
+            "https://www.cs.utep.edu/cheon/cs3360/project/omok/new/?strategy=$strategy");
+        var response = await http.get(uri);
+        var statusCode = response.statusCode;
+        if (statusCode < 200 || statusCode > 400) {
+          print(jsonDecode(response.body)["reason"]);
+        } else {
+          if (jsonDecode(response.body)["response"] == true) {
+            var pid = jsonDecode(response.body)["pid"];
+
+            return pid;
+          }
+        }
+      } else {
+        print('Invalid selection: $selection');
+        ui.askStrategy();
+      }
+    } on FormatException {
+      print('Format error $userStrategy');
+      ui.askStrategy();
     }
   }
 }

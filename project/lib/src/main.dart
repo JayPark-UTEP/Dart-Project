@@ -25,6 +25,7 @@ void main() async {
 
     if (selection == 1 || selection == 2) {
       stdout.write('creating a new game...');
+      //Display the board
     } else {
       stdout.write('Invalid selection: $selection');
     }

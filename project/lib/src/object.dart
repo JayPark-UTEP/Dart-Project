@@ -86,7 +86,7 @@ class WebServiceInterface {
   var serverUrl;
   WebServiceInterface(this.serverUrl);
 
-  getInfo()  {
+  getInfo() {
     // var response = await http.get(Uri.parse(serverUrl));
     // var info = json.decode(response.body);
     // var strategy = info["strategies"];
