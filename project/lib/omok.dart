@@ -60,6 +60,8 @@ class Controller {
                 jsonDecode(jsonEncode(jsonDecode(response.body)["move"]))["x"];
             var computer_y =
                 jsonDecode(jsonEncode(jsonDecode(response.body)["move"]))["y"];
+            board.updateBoard(x-1, y-1, computer_x, computer_y);
+            board.showBoard();
           } else {
             print("Sorry, that place is taken :(");
             board.showBoard();
@@ -103,20 +105,28 @@ class consoleUI {
 
 class Board {
   var _size;
-  var _rows;
+  var line = List.generate(15, (i) => List.filled(15, '. ', growable: false));
+
   Board(this._size);
 
   void showBoard() {
-    var indexes = List<int>.generate(_size, (i) => (i + 1) % 10).join(' ');
-    print('x $indexes');
-    print('y--------------------------------');
-    // for (var row in board._rows) {
-    //   var line = row.map((player) => player.stone).join('n');
-    //   stdout.writeln('${y % 10}| $line');
-    // }
+    var indexes = List<int>.generate(_size, (i) => (i + 1) % 10).join('  ');
+    print(' x $indexes');
+    print('y - - - - - - - - - - - - - - - - - - - - - - -');
+    for (var i = 0; i < _size; i++) {
+      stdout.write('${(i + 1) % 10}| ');
+      print(line[i].join(' '));
+    }
   }
 
-  void updateBoard(x, y, computerX, computerY) {}
+  void updateBoard(x, y, computerX, computerY) {
+    if (line[y][x] == '. ') {
+      line[y][x] = 'O';
+    }
+    if (line[computerY][computerX] == '. ') {
+      line[computerY][computerX] = 'X';
+    }
+  }
 }
 
 class WebClient {
