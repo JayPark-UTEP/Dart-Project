@@ -27,6 +27,20 @@ class Controller {
     makeMove(pid, board);
   }
 
+  void checkHasWon(pid, board, response) {
+    if (jsonDecode(response.body)["ack_move"] == null) {
+      var computerWon = jsonDecode(response.body)["move"]["isWin"];
+      print("uh-oh, computer won :(");
+      var row = jsonDecode(response.body)["move"]["row"];
+      board.updateWin(row);
+    } else if (jsonDecode(response.body)["move"] == null) {
+      var playerWon = jsonDecode(response.body)["ack_move"]["isWin"];
+      print("Congrats! You have won :)");
+      var row = jsonDecode(response.body)["ack_move"]["row"];
+      board.updateWin(row);
+    }
+  }
+
   void makeMove(pid, board) async {
     //The exclamation mark makes sure the input isnt null
     var ui = consoleUI();
@@ -56,12 +70,27 @@ class Controller {
 
           //If the response is true then we need to update the move with x and y
           if (serverRespnse) {
-            var computer_x =
-                jsonDecode(jsonEncode(jsonDecode(response.body)["move"]))["x"];
-            var computer_y =
-                jsonDecode(jsonEncode(jsonDecode(response.body)["move"]))["y"];
-            board.updateBoard(x-1, y-1, computer_x, computer_y);
-            board.showBoard();
+            if (jsonDecode(response.body)["move"] == null) {
+              var computerHasWon = jsonDecode(
+                  jsonEncode(jsonDecode(response.body)["ack_move"]["isWin"]));
+              if (computerHasWon) {
+                checkHasWon(pid, board, response);
+              }
+            } else if (jsonDecode(response.body)["ack_move"] == null) {
+              var personHasWon = jsonDecode(
+                  jsonEncode(jsonDecode(response.body)["move"]["isWin"]));
+              if (personHasWon) {
+                checkHasWon(pid, board, response);
+              }
+            } else {
+              var computer_x = jsonDecode(
+                  jsonEncode(jsonDecode(response.body)["move"]))["x"];
+              var computer_y = jsonDecode(
+                  jsonEncode(jsonDecode(response.body)["move"]))["y"];
+              board.updateBoard(x - 1, y - 1, computer_x, computer_y);
+              board.showBoard();
+              makeMove(pid, board);
+            }
           } else {
             print("Sorry, that place is taken :(");
             board.showBoard();
@@ -117,6 +146,15 @@ class Board {
       stdout.write('${(i + 1) % 10}| ');
       print(line[i].join(' '));
     }
+  }
+
+  void updateWin(row) {
+    for (var i = 0; i < row.length; i += 2) {
+      var x = row[i];
+      var y = row[i + 1];
+      line[y - 1][x - 1] = 'W';
+    }
+    showBoard();
   }
 
   void updateBoard(x, y, computerX, computerY) {
