@@ -22,11 +22,12 @@ class Controller {
     //return Info object(size,strategies)
     var info = await wb.getInfo(url);
     var pid = await ui.askStrategy();
-    ui.showBoard();
-    makeMove(pid);
+    var board = Board(15);
+    board.showBoard();
+    makeMove(pid, board);
   }
 
-  void makeMove(pid) async {
+  void makeMove(pid, board) async {
     //The exclamation mark makes sure the input isnt null
     var ui = consoleUI();
     ui.printMoveDirections();
@@ -50,14 +51,27 @@ class Controller {
         if (statusCode < 200 || statusCode > 400) {
           print('Server connection failed ($statusCode).');
         } else {
-          print(response.body);
+          //Here we need to check if the move worked on the server. If so we need to update the board and display it. If not we let user know it was invalid and dont display the board
+          var serverRespnse = jsonDecode(response.body)["response"];
+
+          //If the response is true then we need to update the move with x and y
+          if (serverRespnse) {
+            var computer_x =
+                jsonDecode(jsonEncode(jsonDecode(response.body)["move"]))["x"];
+            var computer_y =
+                jsonDecode(jsonEncode(jsonDecode(response.body)["move"]))["y"];
+          } else {
+            print("Sorry, that place is taken :(");
+            board.showBoard();
+            makeMove(pid, board);
+          }
         }
       }
     } on FormatException {
       print("Invalid format, please follow the example given");
       print("");
-      ui.showBoard;
-      makeMove(pid);
+      board.showBoard();
+      makeMove(pid, board);
     }
   }
 }
@@ -81,19 +95,6 @@ class consoleUI {
     return await web.createGame(userStrategy);
   }
 
-  void showBoard() {
-    var board = Board(15);
-
-    var indexes =
-        List<int>.generate(board._size, (i) => (i + 1) % 10).join(' ');
-    print('x $indexes');
-    print('y--------------------------------');
-    // for (var row in board._rows) {
-    //   var line = row.map((player) => player.stone).join('n');
-    //   stdout.writeln('${y % 10}| $line');
-    // }
-  }
-
   void printMoveDirections() {
     print("Player: O, Server: X (and *)");
     print("Enter x and y for your move (1-15, e.g., 8 10): ");
@@ -104,6 +105,18 @@ class Board {
   var _size;
   var _rows;
   Board(this._size);
+
+  void showBoard() {
+    var indexes = List<int>.generate(_size, (i) => (i + 1) % 10).join(' ');
+    print('x $indexes');
+    print('y--------------------------------');
+    // for (var row in board._rows) {
+    //   var line = row.map((player) => player.stone).join('n');
+    //   stdout.writeln('${y % 10}| $line');
+    // }
+  }
+
+  void updateBoard(x, y, computerX, computerY) {}
 }
 
 class WebClient {
